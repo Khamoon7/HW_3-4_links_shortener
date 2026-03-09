@@ -21,7 +21,7 @@
 
 ```bash
 git clone <repo_url>
-cd url_shortener
+cd <repo_directory>
 ```
 
 ### 2. Настроить переменные окружения
@@ -34,7 +34,7 @@ cp .env.example .env
 ### 3. Запустить через Docker Compose
 
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
 Приложение будет доступно на `http://localhost:8000`.
@@ -90,7 +90,7 @@ uvicorn main:app --reload
         ├── models.py       # ORM: Link (активные), LinkHistory (деактивированные)
         ├── schemas.py      # Pydantic схемы для всех запросов и ответов API
         ├── service.py      # Вся бизнес-логика: CRUD, поиск, статистика, очистка
-        └── router.py       # FastAPI роутер: 13 эндпоинтов, кэширование
+        └── router.py       # FastAPI роутер: 12 эндпоинтов, кэширование
 ```
 
 | Файл | Ответственность |
@@ -105,7 +105,7 @@ uvicorn main:app --reload
 | `src/links/models.py` | ORM таблицы `links` и `link_history` со всеми полями |
 | `src/links/schemas.py` | Pydantic схемы для всех запросов и ответов API |
 | `src/links/service.py` | Вся бизнес-логика: создание, редирект, статистика, поиск, архивирование, очистка |
-| `src/links/router.py` | 13 API эндпоинтов, кэш через `@cache`, инвалидация при PUT/DELETE |
+| `src/links/router.py` | 12 API эндпоинтов, кэш через `@cache`, инвалидация при POST/PUT/DELETE/cleanup |
 | `migrations/versions/0001_initial_schema.py` | Создаёт таблицы `user`, `links`, `link_history` в PostgreSQL |
 | `docker-compose.yml` | Поднимает PostgreSQL 16, Redis 7, приложение с healthcheck-ами |
 
@@ -360,16 +360,18 @@ curl "http://localhost:8000/links/projects/blog/stats" \
 cp .env.example .env
 
 # 2. Собрать и запустить контейнеры
-docker-compose up --build -d
+docker compose up --build -d
 
 # 3. Проверить логи
-docker-compose logs -f app
+docker compose logs -f app
 
-# 4. Открыть документацию
-open http://localhost:8000/docs
+# 4. Открыть документацию в браузере
+# Windows: start http://localhost:8000/docs
+# Linux:   xdg-open http://localhost:8000/docs
+# macOS:   open http://localhost:8000/docs
 
 # 5. Остановить
-docker-compose down
+docker compose down
 ```
 
 ### Переменные окружения (.env)
