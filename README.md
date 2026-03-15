@@ -389,3 +389,128 @@ REDIS_PORT=6379
 SECRET=your_jwt_secret_key
 BASE_URL=http://localhost:8000
 ```
+
+---
+
+## Тестирование
+
+### Предварительные требования
+
+- PostgreSQL запущен локально (или через Docker)
+- Создана тестовая база данных:
+
+```bash
+createdb url_shortener_test
+# или через psql:
+# CREATE DATABASE url_shortener_test;
+```
+
+- Установлены тестовые зависимости:
+
+```bash
+pip install -r requirements.txt
+```
+
+### Переменные окружения для тестов
+
+По умолчанию тесты используют:
+```
+postgresql+asyncpg://postgres:postgres@localhost:5432/url_shortener_test
+```
+
+Изменить можно через переменную окружения:
+```bash
+export TEST_DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/url_shortener_test
+```
+
+### Запуск unit-тестов
+
+Тестируют бизнес-логику (`service.py`, `schemas.py`) без обращения к БД:
+
+```bash
+pytest tests/unit -v
+```
+
+### Запуск функциональных тестов
+
+Тестируют все API endpoints через HTTP-клиент (требуется PostgreSQL):
+
+```bash
+pytest tests/functional -v
+```
+
+### Все тесты с отчётом покрытия
+
+```bash
+pytest tests/unit tests/functional --cov=src --cov-report=html:htmlcov --cov-report=term-missing -v
+```
+
+Открыть HTML-отчёт:
+```bash
+# Windows
+start htmlcov/index.html
+
+# macOS / Linux
+open htmlcov/index.html
+```
+
+Процент покрытия виден в терминале и в `htmlcov/index.html` без запуска кода.
+
+### Нагрузочные тесты (Locust)
+
+Требуется запущенное приложение (например, через `docker compose up`):
+
+```bash
+# Запустить с веб-интерфейсом
+locust -f tests/load/locustfile.py --host http://localhost:8000
+# Открыть http://localhost:8089, задать Users=50, Spawn rate=10
+
+# Или без UI (headless)
+locust -f tests/load/locustfile.py --headless -u 50 -r 10 --run-time 60s --host http://localhost:8000
+```
+
+**Оценка влияния кэша:** в Locust UI сравните Response Time для:
+- `/links/[code]/stats` — кэшируется 30 сек (cache hits значительно быстрее)
+- `/links/[code]` — не кэшируется (каждый запрос к БД)
+- `/links/top` — кэшируется 60 сек
+
+### Структура тестов
+
+```
+tests/
+├── conftest.py                      # Фикстуры: движок, клиенты, auth
+├── unit/
+│   ├── test_service.py              # Unit-тесты с AsyncMock (без БД)
+│   └── test_service_integration.py  # Интеграционные тесты с реальной БД (expire_old_links)
+├── functional/
+│   ├── test_auth.py                 # Регистрация, вход
+│   ├── test_links_create.py         # POST /links/shorten
+│   ├── test_links_read.py           # GET redirect, stats, search, top, my links
+│   ├── test_links_update.py         # PUT /{short_code}
+│   ├── test_links_delete.py         # DELETE + cleanup
+│   ├── test_links_history.py        # GET /history/expired
+│   ├── test_links_projects.py       # GET /projects/{project}/stats
+│   └── test_links_qr.py             # GET /{short_code}/qr
+└── load/
+    └── locustfile.py                # Нагрузочные тесты Locust
+```
+
+### Отчёт о покрытии
+
+HTML-отчёт с визуализацией покрытия уже сгенерирован и доступен в репозитории:
+
+```
+htmlcov/index.html   ← открыть в браузере
+```
+
+Текущее покрытие: **92%** (порог `fail_under = 90` задан в `pyproject.toml`).
+
+Чтобы пересоздать отчёт после изменений:
+
+```bash
+pytest tests/unit tests/functional --cov=src --cov-report=html:htmlcov --cov-report=term-missing -v
+# Windows
+start htmlcov/index.html
+# macOS / Linux
+open htmlcov/index.html
+```

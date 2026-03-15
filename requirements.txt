@@ -11,3 +11,11 @@ pydantic~=2.10.6
 psycopg2-binary
 gunicorn
 qrcode[pil]
+
+# Тестовые зависимости
+pytest>=8.0
+pytest-asyncio>=0.24
+httpx>=0.27
+pytest-mock>=3.14
+coverage[toml]>=7.4
+locust>=2.28

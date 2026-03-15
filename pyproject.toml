@@ -1,3 +1,18 @@
 [tool.pytest.ini_options]
 pythonpath = [".", "src"]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+concurrency = ["greenlet"]
+omit = ["src/migrations/*"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+
+[tool.coverage.html]
+directory = "htmlcov"
